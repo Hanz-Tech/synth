@@ -3,10 +3,13 @@ import pyaudio
 import itertools
 import numpy as np
 from pygame import midi
+from tremolo import Tremolo
+import tremolo
 
 BUFFER_SIZE = 256
 SAMPLE_RATE = 44100
 NOTE_AMP = 0.1
+tremoloOut = 0
 
 # -- HELPER FUNCTIONS --
 def get_sin_oscillator(freq=55, amp=1, sample_rate=SAMPLE_RATE):
@@ -14,13 +17,35 @@ def get_sin_oscillator(freq=55, amp=1, sample_rate=SAMPLE_RATE):
     return (math.sin(v) * amp * NOTE_AMP \
             for v in itertools.count(start=0, step=increment))
 
-def get_samples(notes_dict, num_samples=BUFFER_SIZE):
-    return [sum([int(next(osc) * 32767) \
-            for _, osc in notes_dict.items()]) \
-            for _ in range(num_samples)]
+def get_samples(trem, notes_dict, num_samples=BUFFER_SIZE, ):
+    # outSample = []
+    # for _ in range(num_samples):
+    #     out = 0
+    #     for _, osc in notes_dict.items():
+    #         out += int(trem.TremoloUpdate(next(osc))) * 32767
+    #     outSample.append(out)
+    # return outSample
+
+    # return [sum([int(next(osc) * 32767) \
+    #         for _, osc in notes_dict.items()]) \
+    #         for _ in range(num_samples)]
+
+    outSample = []
+    for _ in range(num_samples):
+        out = 0
+        ifFirstNote = True
+        for _, osc in notes_dict.items():
+            if ifFirstNote == True:
+                out += int(trem.TremoloUpdate(next(osc)) * 32767)
+                ifFirstNote = False
+            else:
+                out += int(trem.TremoloGet(next(osc)) * 32767)
+        outSample.append(out)
+    return outSample
 
 # -- INITIALIZION --
 midi.init()
+trem = Tremolo(0.5, 3, SAMPLE_RATE)
 default_id = midi.get_default_input_id()
 midi_input = midi.Input(device_id=default_id)
 
@@ -39,10 +64,9 @@ try:
     while True:
         if notes_dict:
             # Play the notes
-            samples = get_samples(notes_dict)
+            samples = get_samples(trem,notes_dict)
             samples = np.int16(samples).tobytes()
             stream.write(samples)
-            
         if midi_input.poll():
             # Add or remove notes from notes_dict
             for event in midi_input.read(num_events=16):

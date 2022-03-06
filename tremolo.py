@@ -1,7 +1,3 @@
-from asyncio.constants import LOG_THRESHOLD_FOR_CONNLOST_WRITES
-from random import sample
-
-from numpy import outer
 
 class Tremolo:
     def __init__(self, depth: float, lfoFreq_Hz: float, sampleRate_Hz: float ) -> None:
@@ -43,7 +39,7 @@ class Tremolo:
     def TremoloUpdate(self, input: float) -> float:
         
         # y[n] = x[n] * ((1-d) + d * g[n])
-        self.out = input * ( (1.0 - self.depth) + self.depth * self.lfoCount / self.lfoCountLimit )
+        out = input * ( (1.0 - self.depth) + self.depth * self.lfoCount / self.lfoCountLimit )
 
         if self.lfoCount >= self.lfoCountLimit:
             self.lfoDir = -1
@@ -51,5 +47,7 @@ class Tremolo:
             self.lfoDir = 1
         
         self.lfoCount += self.lfoDir
+        return out 
 
-        return self.out 
+    def TremoloGet(self, input: float) -> float:
+        return input * ( (1.0 - self.depth) + self.depth * self.lfoCount / self.lfoCountLimit )
